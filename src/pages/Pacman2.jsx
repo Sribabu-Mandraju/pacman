@@ -231,6 +231,8 @@ const Pacman2 = () => {
     ctx.fillStyle = "#FFFF00";
     ctx.beginPath();
 
+    const pacmanRadius = currentCellSize / 2 - currentCellSize * 0.1; // Dynamic border for pacman
+
     if (pacman.mouthOpen) {
       let startAngle = 0;
       let endAngle = Math.PI * 2;
@@ -249,10 +251,10 @@ const Pacman2 = () => {
         endAngle = Math.PI * 0.3;
       }
 
-      ctx.arc(pacX, pacY, currentCellSize / 2 - 2, startAngle, endAngle);
+      ctx.arc(pacX, pacY, pacmanRadius, startAngle, endAngle);
       ctx.lineTo(pacX, pacY);
     } else {
-      ctx.arc(pacX, pacY, currentCellSize / 2 - 2, 0, Math.PI * 2);
+      ctx.arc(pacX, pacY, pacmanRadius, 0, Math.PI * 2);
     }
 
     ctx.fill();
@@ -264,44 +266,88 @@ const Pacman2 = () => {
 
       ctx.fillStyle = ghost.frightened ? "#0000FF" : ghost.color;
 
+      const ghostBodyRadius = currentCellSize / 2 - currentCellSize * 0.1; // Dynamic border for ghost body
+      const ghostBodyHeight = currentCellSize / 2 + currentCellSize * 0.05; // Slightly taller body
+
       // Ghost body
       ctx.beginPath();
-      ctx.arc(ghostX, ghostY - 2, currentCellSize / 2 - 2, Math.PI, 0);
+      ctx.arc(
+        ghostX,
+        ghostY - currentCellSize * 0.1,
+        ghostBodyRadius,
+        Math.PI,
+        0
+      );
       ctx.rect(
-        ghostX - (currentCellSize / 2 - 2),
-        ghostY - 2,
-        currentCellSize - 4,
-        currentCellSize / 2
+        ghostX - ghostBodyRadius,
+        ghostY - currentCellSize * 0.1,
+        currentCellSize - currentCellSize * 0.2,
+        ghostBodyHeight
       );
       ctx.fill();
 
       // Ghost bottom wavy part
       ctx.beginPath();
       ctx.moveTo(
-        ghostX - (currentCellSize / 2 - 2),
-        ghostY + currentCellSize / 2 - 2
+        ghostX - ghostBodyRadius,
+        ghostY + ghostBodyHeight - currentCellSize * 0.1
       );
       for (let i = 0; i < 4; i++) {
         const waveX =
-          ghostX - (currentCellSize / 2 - 2) + (i * (currentCellSize - 4)) / 3;
-        const waveY = ghostY + currentCellSize / 2 - 2 + (i % 2 === 0 ? -3 : 0);
+          ghostX -
+          ghostBodyRadius +
+          (i * (currentCellSize - currentCellSize * 0.2)) / 3;
+        const waveY =
+          ghostY +
+          ghostBodyHeight -
+          currentCellSize * 0.1 +
+          (i % 2 === 0 ? -(currentCellSize * 0.15) : 0);
         ctx.lineTo(waveX, waveY);
       }
       ctx.lineTo(
-        ghostX + (currentCellSize / 2 - 2),
-        ghostY + currentCellSize / 2 - 2
+        ghostX + ghostBodyRadius,
+        ghostY + ghostBodyHeight - currentCellSize * 0.1
       );
       ctx.fill();
 
       // Ghost eyes
+      const eyeWidth = currentCellSize * 0.2;
+      const eyeHeight = currentCellSize * 0.3;
+      const eyeOffsetX = currentCellSize * 0.15;
+      const eyeOffsetY = currentCellSize * 0.2;
+
       ctx.fillStyle = "#FFF";
-      ctx.fillRect(ghostX - 6, ghostY - 6, 4, 6);
-      ctx.fillRect(ghostX + 2, ghostY - 6, 4, 6);
+      ctx.fillRect(
+        ghostX - eyeOffsetX - eyeWidth,
+        ghostY - eyeOffsetY,
+        eyeWidth,
+        eyeHeight
+      );
+      ctx.fillRect(
+        ghostX + eyeOffsetX,
+        ghostY - eyeOffsetY,
+        eyeWidth,
+        eyeHeight
+      );
 
       if (!ghost.frightened) {
+        const pupilSize = currentCellSize * 0.1;
+        const pupilOffsetX = currentCellSize * 0.1;
+        const pupilOffsetY = currentCellSize * 0.1;
+
         ctx.fillStyle = "#000";
-        ctx.fillRect(ghostX - 5, ghostY - 4, 2, 2);
-        ctx.fillRect(ghostX + 3, ghostY - 4, 2, 2);
+        ctx.fillRect(
+          ghostX - pupilOffsetX - pupilSize,
+          ghostY - pupilOffsetY,
+          pupilSize,
+          pupilSize
+        );
+        ctx.fillRect(
+          ghostX + pupilOffsetX,
+          ghostY - pupilOffsetY,
+          pupilSize,
+          pupilSize
+        );
       }
     });
   }, [pacman, ghosts, maze, currentCellSize]);
@@ -680,8 +726,8 @@ const Pacman2 = () => {
       const gameAreaDiv = document.querySelector(".game-area");
       if (!gameAreaDiv) return;
 
-      const availableHeight = gameAreaDiv.clientHeight;
-      const availableWidth = gameAreaDiv.clientWidth;
+      const availableHeight = gameAreaDiv.clientHeight - 4; // Subtract a small buffer for border/padding
+      const availableWidth = gameAreaDiv.clientWidth - 4; // Subtract a small buffer for border/padding
 
       const calculatedCellSizeByHeight = Math.floor(
         availableHeight / MAZE_HEIGHT
@@ -833,18 +879,18 @@ const Pacman2 = () => {
 
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-black text-yellow-400 p-0.5">
-      <div className="text-center w-full header-section p-0.5">
-        <h1 className="text-base font-bold text-yellow-400 animate-pulse">
+      <div className="text-center w-full header-section py-0.5 px-0.5 flex flex-col items-center">
+        <h1 className="text-xs font-bold text-yellow-400 animate-pulse">
           PAC-MAN
         </h1>
-        <div className="flex justify-around gap-0.5 text-xs mt-0.5">
-          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
+        <div className="flex justify-around w-full gap-0.5 text-xxs mt-0.5">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 flex-1 text-center leading-none">
             Score: {score}
           </div>
-          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 flex-1 text-center leading-none">
             Lives: {lives}
           </div>
-          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 flex-1 text-center leading-none">
             Level: {level}
           </div>
         </div>
@@ -865,11 +911,11 @@ const Pacman2 = () => {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <div className="relative">
               <div className="absolute inset-0 bg-red-500 blur-lg opacity-50 animate-pulse"></div>
-              <div className="relative bg-gradient-to-r from-red-600 to-red-800 text-white text-sm font-bold px-4 py-2 rounded-xl border-2 border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-bounce">
-                <div className="flex items-center gap-1">
+              <div className="relative bg-gradient-to-r from-red-600 to-red-800 text-white text-xs font-bold px-3 py-1 rounded-xl border-2 border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-bounce">
+                <div className="flex items-center gap-0.5">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 animate-spin"
+                    className="h-2.5 w-2.5 animate-spin"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -891,10 +937,10 @@ const Pacman2 = () => {
         {gameState === "start" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-sm mb-1">Ready to Play?</h2>
+              <h2 className="text-sm mb-0.5">Ready to Play?</h2>
               <button
                 onClick={startGame}
-                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 START GAME
               </button>
@@ -905,10 +951,10 @@ const Pacman2 = () => {
         {gameState === "paused" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-sm mb-1">PAUSED</h2>
+              <h2 className="text-sm mb-0.5">PAUSED</h2>
               <button
                 onClick={pauseGame}
-                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 RESUME
               </button>
@@ -919,11 +965,11 @@ const Pacman2 = () => {
         {gameState === "gameOver" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-sm mb-1">GAME OVER</h2>
-              <p className="text-xs mb-1">Final Score: {score}</p>
+              <h2 className="text-sm mb-0.5">GAME OVER</h2>
+              <p className="text-xs mb-0.5">Final Score: {score}</p>
               <button
                 onClick={startGame}
-                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 PLAY AGAIN
               </button>
@@ -932,11 +978,11 @@ const Pacman2 = () => {
         )}
       </div>
 
-      <div className="w-full flex flex-col items-center controls-section p-0.5">
+      <div className="w-full flex flex-col items-center controls-section py-0.5 px-0.5">
         {gameState === "playing" && (
           <button
             onClick={pauseGame}
-            className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-3 py-1 rounded-lg text-xs font-bold hover:from-blue-500 hover:to-blue-700 transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.5)] mb-1"
+            className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold hover:from-blue-500 hover:to-blue-700 transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.5)] mb-0.5"
           >
             PAUSE
           </button>
@@ -948,11 +994,11 @@ const Pacman2 = () => {
             {/* Up Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.UP)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-10 h-10 rounded-t-xl mb-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-8 h-8 rounded-t-xl mb-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3 w-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -971,11 +1017,11 @@ const Pacman2 = () => {
               {/* Left Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.LEFT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-10 h-10 rounded-l-xl mr-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-8 h-8 rounded-l-xl mr-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -992,11 +1038,11 @@ const Pacman2 = () => {
               {/* Center Pause Button */}
               <button
                 onClick={pauseGame}
-                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-10 h-10 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-8 h-8 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1013,11 +1059,11 @@ const Pacman2 = () => {
               {/* Right Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.RIGHT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-10 h-10 rounded-r-xl ml-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-8 h-8 rounded-r-xl ml-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1035,11 +1081,11 @@ const Pacman2 = () => {
             {/* Down Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.DOWN)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-10 h-10 rounded-b-xl mt-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-8 h-8 rounded-b-xl mt-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3 w-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1055,14 +1101,14 @@ const Pacman2 = () => {
           </div>
         </div>
 
-        <div className="mt-0.5 text-xs text-blue-400">
+        <div className="mt-0.5 text-xxs text-blue-400">
           Use the directional buttons below
         </div>
       </div>
 
       {powerPelletActive && (
         <div className="mt-0.5 text-center">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs font-bold px-1 py-0.5 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xxs font-bold px-1 py-0.5 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">
             POWER MODE: {Math.ceil(powerPelletTimer / 10)}s
           </div>
         </div>
