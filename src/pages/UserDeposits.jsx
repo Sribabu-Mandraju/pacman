@@ -17,7 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import TimeLockNFTStakingABI from "../abis/stablz.json";
 
-const API_URL = "https://locknft.onrender.com/market/owned-nfts";
+const API_URL = "http://localhost:5000/market/owned-nfts";
 const CONTRACT_ADDRESS = import.meta.env.VITE_STABLEZ_CONTRACT;
 
 const UserDeposits = () => {

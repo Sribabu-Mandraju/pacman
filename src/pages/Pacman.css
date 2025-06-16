@@ -1,0 +1,230 @@
+.pacman-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #000000, #1a1a1a);
+  padding: 10px;
+  box-sizing: border-box;
+  font-family: "Press Start 2P", cursive;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00f;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 255, 0.3);
+  gap: 8px;
+}
+
+.score {
+  color: #fff;
+  font-size: 14px;
+  text-shadow: 0 0 10px #00f;
+  flex: 1;
+  min-width: 120px;
+}
+
+.level {
+  color: #fff;
+  font-size: 14px;
+  text-shadow: 0 0 10px #00f;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+
+.lives {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+  justify-content: flex-end;
+}
+
+.life {
+  font-size: 16px;
+  animation: pulse 1s infinite;
+}
+
+.power-mode {
+  color: #ffff00;
+  font-size: 12px;
+  animation: pulse 1s infinite;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.game-canvas {
+  background-color: #000;
+  border: 3px solid #00f;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  aspect-ratio: 1;
+  touch-action: none;
+  box-shadow: 0 0 30px rgba(0, 0, 255, 0.4);
+  transition: all 0.3s ease;
+  image-rendering: pixelated;
+}
+
+.game-canvas:active {
+  transform: scale(0.98);
+}
+
+.game-over {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+  color: #fff;
+  border: 3px solid #00f;
+  box-shadow: 0 0 40px rgba(0, 0, 255, 0.5);
+  animation: fadeIn 0.5s ease;
+  z-index: 1000;
+  width: 90%;
+  max-width: 320px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.game-over h2 {
+  color: #f00;
+  margin-bottom: 15px;
+  font-size: 18px;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.game-over p {
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #fff;
+}
+
+.game-over button {
+  background: linear-gradient(to bottom, #0000ff, #000088);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Press Start 2P", cursive;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 15px rgba(0, 0, 255, 0.3);
+  width: 100%;
+  max-width: 200px;
+}
+
+.game-over button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+}
+
+.game-over button:active {
+  transform: translateY(1px);
+}
+
+.controls-info {
+  margin-top: 15px;
+  text-align: center;
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.8;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  max-width: 360px;
+  padding: 0 10px;
+}
+
+.controls-info p {
+  margin: 5px 0;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .game-header {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .score,
+  .level {
+    font-size: 12px;
+  }
+
+  .life {
+    font-size: 14px;
+  }
+
+  .power-mode {
+    font-size: 10px;
+  }
+
+  .game-canvas {
+    max-width: 100%;
+  }
+
+  .game-over {
+    padding: 15px;
+  }
+
+  .game-over h2 {
+    font-size: 16px;
+  }
+
+  .game-over p {
+    font-size: 12px;
+  }
+
+  .game-over button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .controls-info {
+    font-size: 10px;
+  }
+}
+
+/* Add retro-style font */
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");

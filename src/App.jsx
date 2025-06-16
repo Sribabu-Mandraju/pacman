@@ -10,22 +10,23 @@ import UserDeposits from "./pages/UserDeposits";
 import SetROIPage from "./pages/SetROIPage";
 import AdminPage from "./pages/AdminPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import Pacman from "./pages/Pacman";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import Packman2 from "./pages/Pacman2";
 const App = () => {
   return (
     <WalletProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/deposit" element={<DepositPage />} />
+          <Route path="/" element={<Packman2 />} />
+          {/* <Route path="/deposit" element={<DepositPage />} />
           <Route path="/redeem" element={<RedeemPage />} />
           <Route path="/user-deposits" element={<UserDeposits />} />
           <Route path="/set-roi" element={<SetROIPage />} />
           <Route path="/admin" element={<AdminPage />} />
-          <Route path="/*" element={<NotFoundPage />} />
+          <Route path="/*" element={<NotFoundPage />} /> */}
         </Routes>
       </Router>
       <ToastContainer

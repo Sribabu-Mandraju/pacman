@@ -14,7 +14,7 @@ import IERC20ABI from "../abis/ierc20.json";
 import { useNavigate } from "react-router-dom";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_STABLEZ_CONTRACT;
-const USDT_API_URL = "https://locknft.onrender.com/market/usdt";
+const USDT_API_URL = "http://localhost:5000/market/usdt";
 
 const DepositPage = () => {
   const navigate = useNavigate();
@@ -268,7 +268,7 @@ const DepositPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Lock Period
+                    Lock Period (Testing Mode)
                   </label>
                   <select
                     value={selectedPeriod}
@@ -276,10 +276,13 @@ const DepositPage = () => {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
                     disabled={isSubmitting}
                   >
-                    <option value={1}>1 Month</option>
-                    <option value={2}>2 Months</option>
-                    <option value={3}>3 Months</option>
+                    <option value={1}>1 Month (5 minutes)</option>
+                    <option value={2}>2 Months (10 minutes)</option>
+                    <option value={3}>3 Months (15 minutes)</option>
                   </select>
+                  <p className="mt-2 text-sm text-yellow-400">
+                    ⚠️ Testing Mode: 1 Month = 5 Minutes
+                  </p>
                 </div>
 
                 <button
@@ -322,7 +325,7 @@ const DepositPage = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Selected Period</span>
                       <span className="text-white">
-                        {selectedPeriod} Months
+                        {selectedPeriod} Months ({selectedPeriod * 5} minutes)
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
