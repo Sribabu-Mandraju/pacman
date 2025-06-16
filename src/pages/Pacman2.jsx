@@ -96,7 +96,6 @@ const GHOST_SPEED = 0.8; // Ghosts move slightly slower than Pacman
 const Pacman2 = () => {
   const canvasRef = useRef(null);
   const gameLoopRef = useRef(null);
-  const touchStartRef = useRef({ x: 0, y: 0 });
   const lastUpdateRef = useRef(0);
 
   const [gameState, setGameState] = useState("start"); // start, playing, paused, gameOver
@@ -586,67 +585,13 @@ const Pacman2 = () => {
     ghostEatenCount,
   ]);
 
-  const handleKeyPress = useCallback(
-    (e) => {
+  const handleDirectionButton = useCallback(
+    (direction) => {
       if (gameState !== "playing") return;
-
-      switch (e.key) {
-        case "ArrowUp":
-        case "w":
-        case "W":
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.UP }));
-          break;
-        case "ArrowDown":
-        case "s":
-        case "S":
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.DOWN }));
-          break;
-        case "ArrowLeft":
-        case "a":
-        case "A":
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.LEFT }));
-          break;
-        case "ArrowRight":
-        case "d":
-        case "D":
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.RIGHT }));
-          break;
-      }
+      setPacman((prev) => ({ ...prev, nextDirection: direction }));
     },
     [gameState]
   );
-
-  const handleTouchStart = (e) => {
-    const touch = e.touches[0];
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-  };
-
-  const handleTouchEnd = (e) => {
-    if (gameState !== "playing") return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - touchStartRef.current.x;
-    const deltaY = touch.clientY - touchStartRef.current.y;
-    const minSwipeDistance = 30;
-
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (Math.abs(deltaX) > minSwipeDistance) {
-        if (deltaX > 0) {
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.RIGHT }));
-        } else {
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.LEFT }));
-        }
-      }
-    } else {
-      if (Math.abs(deltaY) > minSwipeDistance) {
-        if (deltaY > 0) {
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.DOWN }));
-        } else {
-          setPacman((prev) => ({ ...prev, nextDirection: DIRECTIONS.UP }));
-        }
-      }
-    }
-  };
 
   const startGame = () => {
     cleanup();
@@ -792,12 +737,6 @@ const Pacman2 = () => {
     return cleanup;
   }, [cleanup]);
 
-  // Add keyboard event listener
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [handleKeyPress]);
-
   // Add life lost timer effect
   useEffect(() => {
     if (lifeLostTimer > 0) {
@@ -814,30 +753,88 @@ const Pacman2 = () => {
     }
   }, [lifeLostTimer]);
 
+  // Add keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (gameState !== "playing") return;
+
+      switch (e.key.toLowerCase()) {
+        case "arrowup":
+        case "w":
+          handleDirectionButton(DIRECTIONS.UP);
+          break;
+        case "arrowdown":
+        case "s":
+          handleDirectionButton(DIRECTIONS.DOWN);
+          break;
+        case "arrowleft":
+        case "a":
+          handleDirectionButton(DIRECTIONS.LEFT);
+          break;
+        case "arrowright":
+        case "d":
+          handleDirectionButton(DIRECTIONS.RIGHT);
+          break;
+        case " ":
+        case "p":
+          pauseGame();
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameState, handleDirectionButton]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-yellow-400 p-4">
       <div className="text-center mb-4">
-        <h1 className="text-4xl font-bold mb-2">PAC-MAN</h1>
+        <h1 className="text-4xl font-bold mb-2 text-yellow-400 animate-pulse">
+          PAC-MAN
+        </h1>
         <div className="flex justify-center gap-8 text-lg">
-          <div>Score: {score}</div>
-          <div>Lives: {lives}</div>
-          <div>Level: {level}</div>
+          <div className="bg-blue-900 bg-opacity-50 px-4 py-2 rounded-lg border border-blue-500">
+            Score: {score}
+          </div>
+          <div className="bg-blue-900 bg-opacity-50 px-4 py-2 rounded-lg border border-blue-500">
+            Lives: {lives}
+          </div>
+          <div className="bg-blue-900 bg-opacity-50 px-4 py-2 rounded-lg border border-blue-500">
+            Level: {level}
+          </div>
         </div>
       </div>
 
       <div className="relative">
         <canvas
           ref={canvasRef}
-          className="border-2 border-blue-500 bg-black"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          className="border-4 border-blue-500 bg-black shadow-[0_0_15px_rgba(59,130,246,0.5)]"
           style={{ touchAction: "none" }}
         />
 
         {showLifeLost && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-red-500 bg-opacity-80 text-white text-4xl font-bold px-8 py-4 rounded-lg animate-bounce">
-              LIFE LOST!
+            <div className="relative">
+              <div className="absolute inset-0 bg-red-500 blur-lg opacity-50 animate-pulse"></div>
+              <div className="relative bg-gradient-to-r from-red-600 to-red-800 text-white text-4xl font-bold px-12 py-6 rounded-xl border-2 border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-bounce">
+                <div className="flex items-center gap-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 w-10 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  LIFE LOST!
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -890,21 +887,138 @@ const Pacman2 = () => {
         {gameState === "playing" && (
           <button
             onClick={pauseGame}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg mr-4 hover:bg-blue-400"
+            className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-500 hover:to-blue-700 transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
           >
             PAUSE
           </button>
         )}
 
+        {/* Enhanced Mobile Controls */}
+        <div className="mt-8 md:hidden">
+          <div className="flex flex-col items-center">
+            {/* Up Button */}
+            <button
+              onClick={() => handleDirectionButton(DIRECTIONS.UP)}
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-20 h-20 rounded-t-xl mb-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </button>
+
+            {/* Middle Row */}
+            <div className="flex">
+              {/* Left Button */}
+              <button
+                onClick={() => handleDirectionButton(DIRECTIONS.LEFT)}
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-20 h-20 rounded-l-xl mr-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Center Pause Button */}
+              <button
+                onClick={pauseGame}
+                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-20 h-20 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
+
+              {/* Right Button */}
+              <button
+                onClick={() => handleDirectionButton(DIRECTIONS.RIGHT)}
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-20 h-20 rounded-r-xl ml-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Down Button */}
+            <button
+              onClick={() => handleDirectionButton(DIRECTIONS.DOWN)}
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-20 h-20 rounded-b-xl mt-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <div className="mt-4 text-sm">
-          <p className="mb-2">Desktop: Use WASD or Arrow Keys</p>
-          <p>Mobile: Swipe to move Pac-Man</p>
+          <p className="mb-2 hidden md:block text-blue-400">
+            Desktop: Use WASD or Arrow Keys
+          </p>
+          <p className="md:hidden text-blue-400">
+            Mobile: Use the directional buttons below
+          </p>
         </div>
       </div>
 
       {powerPelletActive && (
-        <div className="mt-2 text-center">
-          <div className="text-blue-400 font-bold">
+        <div className="mt-4 text-center">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold px-6 py-3 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">
             POWER MODE: {Math.ceil(powerPelletTimer / 10)}s
           </div>
         </div>

@@ -2,6 +2,9 @@ import React from "react";
 import "./index.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { WalletProvider } from "./context/WalletContext";
+import WebApp from '@twa-dev/sdk';
+
+
 
 import Landing from "./pages/WelcomePage";
 import DepositPage from "./pages/depositPage";
