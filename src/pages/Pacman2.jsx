@@ -810,7 +810,8 @@ const Pacman2 = () => {
           ref={canvasRef}
           className="border-4 border-blue-500 bg-black shadow-[0_0_15px_rgba(59,130,246,0.5)]"
           style={{ touchAction: "none" }}
-        />
+        />  
+        {/* // */}
 
         {showLifeLost && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
