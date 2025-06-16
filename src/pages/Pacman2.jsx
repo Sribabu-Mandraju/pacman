@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const CELL_SIZE = 16;
+const CELL_SIZE = 20; // Default, will be updated dynamically
 const MAZE_WIDTH = 19;
 const MAZE_HEIGHT = 21;
 const GAME_SPEED = 150; // milliseconds between updates
@@ -98,7 +98,7 @@ const Pacman2 = () => {
   const gameLoopRef = useRef(null);
   const lastUpdateRef = useRef(0);
 
-  const [currentCellSize, setCurrentCellSize] = useState(20); // Default, will be updated dynamically
+  const [currentCellSize, setCurrentCellSize] = useState(CELL_SIZE);
 
   const [gameState, setGameState] = useState("start"); // start, playing, paused, gameOver
   const [score, setScore] = useState(0);
@@ -677,33 +677,24 @@ const Pacman2 = () => {
     if (!canvas) return;
 
     const updateCanvasSize = () => {
-      // Get dimensions of the parent div for dynamic sizing
-      const parentDiv = canvas.parentElement;
-      if (!parentDiv) return;
+      const gameAreaDiv = document.querySelector(".game-area");
+      if (!gameAreaDiv) return;
 
-      // Account for header and footer heights
-      const headerHeight =
-        document.querySelector(".header-section")?.clientHeight || 0;
-      const controlsHeight =
-        document.querySelector(".controls-section")?.clientHeight || 0;
-      const availableHeight =
-        window.innerHeight - headerHeight - controlsHeight - 20; // 20px for general padding/margins
-      const availableWidth = window.innerWidth - 20; // 20px for general padding/margins
+      const availableHeight = gameAreaDiv.clientHeight;
+      const availableWidth = gameAreaDiv.clientWidth;
 
       const calculatedCellSizeByHeight = Math.floor(
         availableHeight / MAZE_HEIGHT
       );
       const calculatedCellSizeByWidth = Math.floor(availableWidth / MAZE_WIDTH);
 
-      // Choose the smaller cell size to ensure the entire maze fits within both dimensions
       const newCellSize = Math.max(
-        10,
+        8,
         Math.min(calculatedCellSizeByHeight, calculatedCellSizeByWidth)
-      );
+      ); // Min 8px to prevent too small cells
 
       setCurrentCellSize(newCellSize);
 
-      // Set canvas dimensions based on newCellSize
       canvas.width = MAZE_WIDTH * newCellSize;
       canvas.height = MAZE_HEIGHT * newCellSize;
     };
@@ -712,14 +703,17 @@ const Pacman2 = () => {
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
 
-    // Observe parent div for resizing if its size changes independent of window resize
-    const resizeObserver = new ResizeObserver(() => updateCanvasSize());
-    resizeObserver.observe(canvas.parentElement);
+    // Observe the specific game area div for resizing
+    const gameAreaObserver = new ResizeObserver(() => updateCanvasSize());
+    const gameAreaDiv = document.querySelector(".game-area");
+    if (gameAreaDiv) {
+      gameAreaObserver.observe(gameAreaDiv);
+    }
 
     // Cleanup
     return () => {
       window.removeEventListener("resize", updateCanvasSize);
-      resizeObserver.disconnect();
+      gameAreaObserver.disconnect();
       cleanup();
     };
   }, [cleanup]);
@@ -838,25 +832,25 @@ const Pacman2 = () => {
   }, [gameState, handleDirectionButton]);
 
   return (
-    <div className="flex flex-col items-center justify-between h-screen bg-black text-yellow-400 p-2">
-      <div className="text-center mb-1 w-full header-section">
-        <h1 className="text-xl font-bold text-yellow-400 animate-pulse">
+    <div className="flex flex-col items-center justify-between min-h-screen bg-black text-yellow-400 p-0.5">
+      <div className="text-center w-full header-section p-0.5">
+        <h1 className="text-base font-bold text-yellow-400 animate-pulse">
           PAC-MAN
         </h1>
-        <div className="flex justify-around gap-2 text-xs mt-1">
-          <div className="bg-blue-900 bg-opacity-50 px-2 py-1 rounded-lg border border-blue-500 min-w-[70px]">
+        <div className="flex justify-around gap-0.5 text-xs mt-0.5">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
             Score: {score}
           </div>
-          <div className="bg-blue-900 bg-opacity-50 px-2 py-1 rounded-lg border border-blue-500 min-w-[70px]">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
             Lives: {lives}
           </div>
-          <div className="bg-blue-900 bg-opacity-50 px-2 py-1 rounded-lg border border-blue-500 min-w-[70px]">
+          <div className="bg-blue-900 bg-opacity-50 px-1 py-0.5 rounded-lg border border-blue-500 min-w-[50px]">
             Level: {level}
           </div>
         </div>
       </div>
 
-      <div className="relative flex-grow flex items-center justify-center w-full max-w-full overflow-hidden p-1">
+      <div className="relative flex-grow flex items-center justify-center w-full max-w-full overflow-hidden game-area p-0">
         <canvas
           ref={canvasRef}
           className="border-2 border-blue-500 bg-black shadow-[0_0_15px_rgba(59,130,246,0.5)]"
@@ -871,11 +865,11 @@ const Pacman2 = () => {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <div className="relative">
               <div className="absolute inset-0 bg-red-500 blur-lg opacity-50 animate-pulse"></div>
-              <div className="relative bg-gradient-to-r from-red-600 to-red-800 text-white text-lg font-bold px-6 py-3 rounded-xl border-2 border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-bounce">
-                <div className="flex items-center gap-2">
+              <div className="relative bg-gradient-to-r from-red-600 to-red-800 text-white text-sm font-bold px-4 py-2 rounded-xl border-2 border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-bounce">
+                <div className="flex items-center gap-1">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 animate-spin"
+                    className="h-3 w-3 animate-spin"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -897,10 +891,10 @@ const Pacman2 = () => {
         {gameState === "start" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-lg mb-2">Ready to Play?</h2>
+              <h2 className="text-sm mb-1">Ready to Play?</h2>
               <button
                 onClick={startGame}
-                className="bg-yellow-400 text-black px-4 py-2 rounded-lg text-base font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 START GAME
               </button>
@@ -911,10 +905,10 @@ const Pacman2 = () => {
         {gameState === "paused" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-lg mb-2">PAUSED</h2>
+              <h2 className="text-sm mb-1">PAUSED</h2>
               <button
                 onClick={pauseGame}
-                className="bg-yellow-400 text-black px-4 py-2 rounded-lg text-base font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 RESUME
               </button>
@@ -925,11 +919,11 @@ const Pacman2 = () => {
         {gameState === "gameOver" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
             <div className="text-center">
-              <h2 className="text-lg mb-1">GAME OVER</h2>
-              <p className="text-sm mb-2">Final Score: {score}</p>
+              <h2 className="text-sm mb-1">GAME OVER</h2>
+              <p className="text-xs mb-1">Final Score: {score}</p>
               <button
                 onClick={startGame}
-                className="bg-yellow-400 text-black px-4 py-2 rounded-lg text-base font-bold hover:bg-yellow-300"
+                className="bg-yellow-400 text-black px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-300"
               >
                 PLAY AGAIN
               </button>
@@ -938,27 +932,27 @@ const Pacman2 = () => {
         )}
       </div>
 
-      <div className="mt-2 w-full flex flex-col items-center controls-section">
+      <div className="w-full flex flex-col items-center controls-section p-0.5">
         {gameState === "playing" && (
           <button
             onClick={pauseGame}
-            className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:from-blue-500 hover:to-blue-700 transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.5)] mb-2"
+            className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-3 py-1 rounded-lg text-xs font-bold hover:from-blue-500 hover:to-blue-700 transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.5)] mb-1"
           >
             PAUSE
           </button>
         )}
 
         {/* Enhanced Mobile Controls */}
-        <div className="mb-2">
+        <div className="mb-0.5">
           <div className="flex flex-col items-center">
             {/* Up Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.UP)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-14 h-14 rounded-t-xl mb-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-10 h-10 rounded-t-xl mb-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -977,11 +971,11 @@ const Pacman2 = () => {
               {/* Left Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.LEFT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-14 h-14 rounded-l-xl mr-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-10 h-10 rounded-l-xl mr-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -998,11 +992,11 @@ const Pacman2 = () => {
               {/* Center Pause Button */}
               <button
                 onClick={pauseGame}
-                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-14 h-14 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-10 h-10 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1019,11 +1013,11 @@ const Pacman2 = () => {
               {/* Right Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.RIGHT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-14 h-14 rounded-r-xl ml-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-10 h-10 rounded-r-xl ml-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1041,11 +1035,11 @@ const Pacman2 = () => {
             {/* Down Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.DOWN)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-14 h-14 rounded-b-xl mt-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-10 h-10 rounded-b-xl mt-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1061,14 +1055,14 @@ const Pacman2 = () => {
           </div>
         </div>
 
-        <div className="mt-1 text-xs text-blue-400">
+        <div className="mt-0.5 text-xs text-blue-400">
           Use the directional buttons below
         </div>
       </div>
 
       {powerPelletActive && (
-        <div className="mt-1 text-center">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">
+        <div className="mt-0.5 text-center">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs font-bold px-1 py-0.5 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">
             POWER MODE: {Math.ceil(powerPelletTimer / 10)}s
           </div>
         </div>
