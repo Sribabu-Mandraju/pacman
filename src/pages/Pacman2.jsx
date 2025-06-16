@@ -160,6 +160,31 @@ const Pacman2 = () => {
   const [showLifeLost, setShowLifeLost] = useState(false);
   const [lifeLostTimer, setLifeLostTimer] = useState(0);
 
+  // Add state for user data
+  const [userData, setUserData] = useState(null);
+
+  // Initialize Telegram WebApp
+  useEffect(() => {
+    // Check if Telegram WebApp is available
+    if (window.Telegram?.WebApp) {
+      // Initialize the WebApp
+      window.Telegram.WebApp.ready();
+
+      // Get user data from initData
+      const initData = window.Telegram.WebApp.initData;
+      if (initData) {
+        try {
+          // Parse the initData to get user information
+          const userData = JSON.parse(decodeURIComponent(initData));
+          setUserData(userData);
+          console.log("User data:", userData);
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+    }
+  }, []);
+
   const sendTelegramMessage = async (message) => {
     // Get the Telegram WebApp instance
     const webApp = window.Telegram?.WebApp;
@@ -168,21 +193,30 @@ const Pacman2 = () => {
       return;
     }
 
-    // Get the user's chat ID from the WebApp
-    const chatId = webApp.initDataUnsafe?.user?.id;
-    if (!chatId) {
-      console.error("User chat ID is not available");
+    // Get user data from the WebApp
+    const initData = webApp.initData;
+    if (!initData) {
+      console.error("Init data is not available");
       return;
     }
 
-    const botToken = "7109819772:AAH8LhaGdkBdx6RwN_2JtImDngYkp-Jehz8";
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
     try {
+      // Parse the initData to get user information
+      const userData = JSON.parse(decodeURIComponent(initData));
+      const chatId = userData.user?.id;
+
+      if (!chatId) {
+        console.error("User chat ID is not available");
+        return;
+      }
+
+      const botToken = "7109819772:AAH8LhaGdkBdx6RwN_2JtImDngYkp-Jehz8";
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
       const response = await axios.post(url, {
         chat_id: chatId,
         text: message,
-        parse_mode: "HTML", // Enable HTML formatting
+        parse_mode: "HTML",
       });
       console.log("Message sent successfully:", response.data);
     } catch (error) {
