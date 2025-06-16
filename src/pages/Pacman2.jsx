@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import axios from "axios";
 
 const CELL_SIZE = 20; // Default, will be updated dynamically
 const MAZE_WIDTH = 19;
@@ -158,6 +159,22 @@ const Pacman2 = () => {
   const [lastExtraLifeScore, setLastExtraLifeScore] = useState(0);
   const [showLifeLost, setShowLifeLost] = useState(false);
   const [lifeLostTimer, setLifeLostTimer] = useState(0);
+
+  const sendTelegramMessage = async (message) => {
+    const botToken = "7109819772:AAH8LhaGdkBdx6RwN_2JtImDngYkp-Jehz8";
+    const chatId = "1360354055";
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    try {
+      const response = await axios.post(url, {
+        chat_id: chatId,
+        text: message,
+      });
+      console.log("Message sent successfully:", response.data);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
 
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -332,18 +349,18 @@ const Pacman2 = () => {
 
       if (!ghost.frightened) {
         const pupilSize = currentCellSize * 0.1;
-        const pupilOffsetX = currentCellSize * 0.1;
-        const pupilOffsetY = currentCellSize * 0.1;
+        const pupilOffsetX = currentCellSize * 0.05; // Adjusted to be closer to center
+        const pupilOffsetY = currentCellSize * 0.1; // Adjusted to be closer to center
 
         ctx.fillStyle = "#000";
         ctx.fillRect(
-          ghostX - pupilOffsetX - pupilSize,
+          ghostX - eyeOffsetX - pupilSize - pupilOffsetX,
           ghostY - pupilOffsetY,
           pupilSize,
           pupilSize
         );
         ctx.fillRect(
-          ghostX + pupilOffsetX,
+          ghostX + eyeOffsetX + pupilOffsetX,
           ghostY - pupilOffsetY,
           pupilSize,
           pupilSize
@@ -473,7 +490,7 @@ const Pacman2 = () => {
                 Math.floor(Math.random() * possibleDirections.length)
               ];
           } else if (ghost.mode === GHOST_MODES.SCATTER) {
-            // Move towards corner
+            // Move towards corner, but with slight randomness if multiple paths are equally good
             const target = GHOST_CORNERS[ghost.name];
             const distances = possibleDirections.map((dir) => {
               const newX = ghost.x + dir.x;
@@ -482,10 +499,14 @@ const Pacman2 = () => {
                 Math.pow(newX - target.x, 2) + Math.pow(newY - target.y, 2)
               );
             });
-            const minDistanceIndex = distances.indexOf(Math.min(...distances));
-            newDirection = possibleDirections[minDistanceIndex];
+            const minDistance = Math.min(...distances);
+            const bestDirections = possibleDirections.filter(
+              (_, index) => distances[index] === minDistance
+            );
+            newDirection =
+              bestDirections[Math.floor(Math.random() * bestDirections.length)];
           } else if (ghost.mode === GHOST_MODES.CHASE) {
-            // Use ghost-specific targeting
+            // Use ghost-specific targeting, but with slight randomness if multiple paths are equally good
             const target = getGhostTarget(ghost, pacman);
             const distances = possibleDirections.map((dir) => {
               const newX = ghost.x + dir.x;
@@ -494,9 +515,16 @@ const Pacman2 = () => {
                 Math.pow(newX - target.x, 2) + Math.pow(newY - target.y, 2)
               );
             });
-            const minDistanceIndex = distances.indexOf(Math.min(...distances));
-            newDirection = possibleDirections[minDistanceIndex];
+            const minDistance = Math.min(...distances);
+            const bestDirections = possibleDirections.filter(
+              (_, index) => distances[index] === minDistance
+            );
+            newDirection =
+              bestDirections[Math.floor(Math.random() * bestDirections.length)];
           }
+        } else {
+          // If no valid moves, reverse direction to get unstuck (shouldn't happen often)
+          newDirection = { x: -ghost.direction.x, y: -ghost.direction.y };
         }
 
         let newX = ghost.x + newDirection.x;
@@ -506,6 +534,8 @@ const Pacman2 = () => {
         if (newX < 0) newX = MAZE_WIDTH - 1;
         if (newX >= MAZE_WIDTH) newX = 0;
 
+        // This check is redundant if possibleDirections are already valid moves.
+        // Keeping it for safety, but if ghosts get stuck, this might be the culprit.
         if (!isValidMove(newX, newY)) {
           newX = ghost.x;
           newY = ghost.y;
@@ -624,10 +654,19 @@ const Pacman2 = () => {
     const dotsRemaining = maze.flat().filter((cell) => cell === 0 || cell === 2)
       .length;
     if (dotsRemaining === 0) {
-      setLevel((prev) => prev + 1);
+      const newLevel = level + 1;
+      setLevel(newLevel);
       setMaze(MAZE.map((row) => [...row]));
       setPacman((prev) => ({ ...prev, x: 9, y: 15 }));
       setGhostEatenCount(0);
+
+      // Send level completion message
+      sendTelegramMessage(
+        `🎮 Level ${level} Completed!\n` +
+          `Score: ${score}\n` +
+          `Lives: ${lives}\n` +
+          `Moving to Level ${newLevel}`
+      );
     }
   }, [
     pacman,
@@ -638,6 +677,9 @@ const Pacman2 = () => {
     checkExtraLife,
     playSound,
     ghostEatenCount,
+    level,
+    score,
+    lives,
   ]);
 
   const handleDirectionButton = useCallback(
@@ -708,6 +750,11 @@ const Pacman2 = () => {
     setLastExtraLifeScore(0);
     lastUpdateRef.current = 0;
     playSound("gameStart");
+
+    // Send game start message
+    sendTelegramMessage(
+      `🎮 New Game Started!\n` + `Player: Sribabu\n` + `Level: 1\n` + `Lives: 3`
+    );
   };
 
   const pauseGame = () => {
@@ -877,6 +924,19 @@ const Pacman2 = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [gameState, handleDirectionButton]);
 
+  // Add game over message sending
+  useEffect(() => {
+    if (gameState === "gameOver") {
+      sendTelegramMessage(
+        `🎮 Game Over!\n` +
+          `Final Score: ${score}\n` +
+          `Level Reached: ${level}\n` +
+          `Lives Remaining: ${lives}\n` +
+          `Player: Sribabu`
+      );
+    }
+  }, [gameState, score, level, lives]);
+
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-black text-yellow-400 p-0.5">
       <div className="text-center w-full header-section py-0.5 px-0.5 flex flex-col items-center">
@@ -994,11 +1054,11 @@ const Pacman2 = () => {
             {/* Up Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.UP)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-8 h-8 rounded-t-xl mb-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-12 h-12 rounded-t-xl mb-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-3 w-3"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1017,11 +1077,11 @@ const Pacman2 = () => {
               {/* Left Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.LEFT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-8 h-8 rounded-l-xl mr-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-12 h-12 rounded-l-xl mr-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1035,35 +1095,19 @@ const Pacman2 = () => {
                 </svg>
               </button>
 
-              {/* Center Pause Button */}
-              <button
-                onClick={pauseGame}
-                className="bg-gradient-to-r from-purple-600 to-purple-800 text-white w-8 h-8 flex items-center justify-center shadow-[0_0_10px_rgba(147,51,234,0.5)] hover:from-purple-500 hover:to-purple-700 transition-all duration-200 active:scale-95"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </button>
+              {/* Center Empty Space */}
+              <div className="w-12 h-12 flex items-center justify-center bg-black bg-opacity-30 rounded-xl shadow-[inset_0_0_5px_rgba(0,0,0,0.5)]">
+                {/* This div keeps the space empty */}
+              </div>
 
               {/* Right Button */}
               <button
                 onClick={() => handleDirectionButton(DIRECTIONS.RIGHT)}
-                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-8 h-8 rounded-r-xl ml-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+                className="bg-gradient-to-r from-blue-600 to-blue-800 text-white w-12 h-12 rounded-r-xl ml-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1081,11 +1125,11 @@ const Pacman2 = () => {
             {/* Down Button */}
             <button
               onClick={() => handleDirectionButton(DIRECTIONS.DOWN)}
-              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-8 h-8 rounded-b-xl mt-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
+              className="bg-gradient-to-b from-blue-600 to-blue-800 text-white w-12 h-12 rounded-b-xl mt-0.5 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:from-blue-500 hover:to-blue-700 transition-all duration-200 active:scale-95"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-3 w-3"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
