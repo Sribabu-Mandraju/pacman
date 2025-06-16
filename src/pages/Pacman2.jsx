@@ -161,14 +161,28 @@ const Pacman2 = () => {
   const [lifeLostTimer, setLifeLostTimer] = useState(0);
 
   const sendTelegramMessage = async (message) => {
+    // Get the Telegram WebApp instance
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp) {
+      console.error("Telegram WebApp is not available");
+      return;
+    }
+
+    // Get the user's chat ID from the WebApp
+    const chatId = webApp.initDataUnsafe?.user?.id;
+    if (!chatId) {
+      console.error("User chat ID is not available");
+      return;
+    }
+
     const botToken = "7109819772:AAH8LhaGdkBdx6RwN_2JtImDngYkp-Jehz8";
-    const chatId = "1360354055";
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
     try {
       const response = await axios.post(url, {
         chat_id: chatId,
         text: message,
+        parse_mode: "HTML", // Enable HTML formatting
       });
       console.log("Message sent successfully:", response.data);
     } catch (error) {
@@ -662,10 +676,10 @@ const Pacman2 = () => {
 
       // Send level completion message
       sendTelegramMessage(
-        `🎮 Level ${level} Completed!\n` +
-          `Score: ${score}\n` +
-          `Lives: ${lives}\n` +
-          `Moving to Level ${newLevel}`
+        `🎮 <b>Level ${level} Completed!</b>\n\n` +
+          `🏆 Score: <b>${score}</b>\n` +
+          `❤️ Lives: <b>${lives}</b>\n` +
+          `⬆️ Moving to Level <b>${newLevel}</b>`
       );
     }
   }, [
@@ -753,7 +767,12 @@ const Pacman2 = () => {
 
     // Send game start message
     sendTelegramMessage(
-      `🎮 New Game Started!\n` + `Player: Sribabu\n` + `Level: 1\n` + `Lives: 3`
+      `🎮 <b>New Game Started!</b>\n\n` +
+        `👤 Player: <b>${
+          window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "Player"
+        }</b>\n` +
+        `📊 Level: <b>1</b>\n` +
+        `❤️ Lives: <b>3</b>`
     );
   };
 
@@ -928,11 +947,14 @@ const Pacman2 = () => {
   useEffect(() => {
     if (gameState === "gameOver") {
       sendTelegramMessage(
-        `🎮 Game Over!\n` +
-          `Final Score: ${score}\n` +
-          `Level Reached: ${level}\n` +
-          `Lives Remaining: ${lives}\n` +
-          `Player: Sribabu`
+        `🎮 <b>Game Over!</b>\n\n` +
+          `🏆 Final Score: <b>${score}</b>\n` +
+          `📊 Level Reached: <b>${level}</b>\n` +
+          `❤️ Lives Remaining: <b>${lives}</b>\n` +
+          `👤 Player: <b>${
+            window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ||
+            "Player"
+          }</b>`
       );
     }
   }, [gameState, score, level, lives]);
