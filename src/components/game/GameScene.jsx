@@ -165,7 +165,7 @@ const GameScene = ({ gameState, mazeData, onDotCollect, onGermMove }) => {
           />
         ))}
 
-      {/* Pacman */}
+      {/* Pacman  */} 
       <PacmanCharacter
         position={[
           gameState.pacman.x - dimensions.cols / 2,
@@ -177,5 +177,7 @@ const GameScene = ({ gameState, mazeData, onDotCollect, onGermMove }) => {
     </>
   );
 };
+
+
 
 export default GameScene;
