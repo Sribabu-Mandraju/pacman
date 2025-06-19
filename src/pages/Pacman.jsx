@@ -3,7 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import "./Pacman.css";
 import GameScene from "../components/game/GameScene";
 import HackedNumbers from "../components/game/HackedNumbers";
-import { generateMaze, getDynamicLevelConfig } from "../utils/mazeGenerator";
+import { generateMaze, LEVEL_CONFIG } from "../utils/mazeGenerator";
 import { soundManager } from "../utils/soundManager";
 
 const Pacman = () => {
@@ -13,113 +13,99 @@ const Pacman = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [hackedNumbers, setHackedNumbers] = useState([]);
-  const [dotsCollected, setDotsCollected] = useState(0);
-  const [currentSegment, setCurrentSegment] = useState(0);
   const lastMoveTimeRef = useRef(0);
   const gameLoopRef = useRef(null);
   const moveSpeed = 100;
-  const DOTS_TO_WIN = 256;
 
-  const initializeGame = useCallback(
-    (level = 1, resetDots = true) => {
-      const maze = generateMaze(level, currentSegment);
-      const mazeSize = maze.dimensions.rows * maze.dimensions.cols;
-      const levelConfig = getDynamicLevelConfig(level, mazeSize);
+  const initializeGame = useCallback((level = 1) => {
+    const maze = generateMaze(level);
+    const levelConfig = LEVEL_CONFIG[level] || LEVEL_CONFIG[10];
 
-      setMazeData(maze);
+    setMazeData(maze);
 
-      if (resetDots) {
-        setDotsCollected(0);
-        setCurrentSegment(0);
-      }
-
-      // Create dots for empty spaces (fewer dots, more spaced out)
-      const dots = [];
-      for (let y = 0; y < maze.dimensions.rows; y += 2) {
-        // Skip every other row
-        for (let x = 0; x < maze.dimensions.cols; x += 2) {
-          // Skip every other column
-          if (maze.pattern[y] && maze.pattern[y][x] === 0) {
-            // Add power dots at specific intervals
-            const isPowerDot = x % 12 === 1 && y % 10 === 1;
-            dots.push({ x: x + 0.5, y: y + 0.5, isPowerDot });
-          }
+    // Create dots for empty spaces
+    const dots = [];
+    for (let y = 0; y < maze.dimensions.rows; y++) {
+      for (let x = 0; x < maze.dimensions.cols; x++) {
+        if (maze.pattern[y] && maze.pattern[y][x] === 0) {
+          // Add power dots at specific intervals
+          const isPowerDot = x % 9 === 1 && y % 7 === 1;
+          dots.push({ x: x + 0.5, y: y + 0.5, isPowerDot });
         }
       }
+    }
 
-      // Create ghosts
-      const ghosts = [];
-      const colors = ["#ff0000", "#ffb8ff", "#00ffff", "#ffb852"];
-      for (let i = 0; i < levelConfig.ghostCount; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * maze.dimensions.cols);
-          y = Math.floor(Math.random() * maze.dimensions.rows);
-        } while (maze.pattern[y] && maze.pattern[y][x] === 1);
+    // Create ghosts
+    const ghosts = [];
+    const colors = ["#ff0000", "#ffb8ff", "#00ffff", "#ffb852"];
+    for (let i = 0; i < levelConfig.ghostCount; i++) {
+      let x, y;
+      do {
+        x = Math.floor(Math.random() * maze.dimensions.cols);
+        y = Math.floor(Math.random() * maze.dimensions.rows);
+      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
 
-        ghosts.push({
-          x: x + 0.5,
-          y: y + 0.5,
-          color: colors[i % colors.length],
-          direction: Math.floor(Math.random() * 4),
-        });
-      }
-
-      // Create germs with different AI types
-      const germs = [];
-      const aiTypes = ["patrol", "hunter", "guard"];
-      for (let i = 0; i < levelConfig.germCount; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * maze.dimensions.cols);
-          y = Math.floor(Math.random() * maze.dimensions.rows);
-        } while (maze.pattern[y] && maze.pattern[y][x] === 1);
-
-        germs.push({
-          id: i,
-          x: x + 0.5,
-          y: y + 0.5,
-          direction: Math.floor(Math.random() * 4),
-          aiType: aiTypes[i % aiTypes.length],
-          lastMove: 0,
-        });
-      }
-
-      // Create glitches
-      const glitches = [];
-      for (let i = 0; i < levelConfig.glitchCount; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * maze.dimensions.cols);
-          y = Math.floor(Math.random() * maze.dimensions.rows);
-        } while (maze.pattern[y] && maze.pattern[y][x] === 1);
-
-        glitches.push({
-          x: x + 0.5,
-          y: y + 0.5,
-          direction: Math.floor(Math.random() * 4),
-        });
-      }
-
-      setGameState({
-        pacman: { x: maze.spawnPoint.x, y: maze.spawnPoint.y },
-        ghosts,
-        germs,
-        glitches,
-        dots,
-        score: 0,
-        level: level,
-        lives: 3,
-        germKillCount: 0,
-        direction: "right",
-        nextDirection: null,
+      ghosts.push({
+        x: x + 0.5,
+        y: y + 0.5,
+        color: colors[i % colors.length],
+        direction: Math.floor(Math.random() * 4),
       });
+    }
 
-      // Play game start sound
-      soundManager.playGameStart();
-    },
-    [currentSegment]
-  );
+    // Create germs with different AI types
+    const germs = [];
+    const aiTypes = ["patrol", "hunter", "guard"];
+    for (let i = 0; i < levelConfig.germCount; i++) {
+      let x, y;
+      do {
+        x = Math.floor(Math.random() * maze.dimensions.cols);
+        y = Math.floor(Math.random() * maze.dimensions.rows);
+      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
+
+      germs.push({
+        id: i,
+        x: x + 0.5,
+        y: y + 0.5,
+        direction: Math.floor(Math.random() * 4),
+        aiType: aiTypes[i % aiTypes.length],
+        lastMove: 0,
+      });
+    }
+
+    // Create glitches
+    const glitches = [];
+    for (let i = 0; i < levelConfig.glitchCount; i++) {
+      let x, y;
+      do {
+        x = Math.floor(Math.random() * maze.dimensions.cols);
+        y = Math.floor(Math.random() * maze.dimensions.rows);
+      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
+
+      glitches.push({
+        x: x + 0.5,
+        y: y + 0.5,
+        direction: Math.floor(Math.random() * 4),
+      });
+    }
+
+    setGameState({
+      pacman: { x: maze.spawnPoint.x, y: maze.spawnPoint.y },
+      ghosts,
+      germs,
+      glitches,
+      dots,
+      score: 0,
+      level: level,
+      lives: 3,
+      germKillCount: 0,
+      direction: "right",
+      nextDirection: null,
+    });
+
+    // Play game start sound
+    soundManager.playGameStart();
+  }, []);
 
   // Check if a position is walkable
   const isWalkable = useCallback(
@@ -257,15 +243,11 @@ const Pacman = () => {
 
     if (dotIndex !== -1) {
       const dot = gameState.dots[dotIndex];
-      const newDotsCollected = dotsCollected + 1;
-
       setGameState((prev) => ({
         ...prev,
         dots: prev.dots.filter((_, index) => index !== dotIndex),
         score: prev.score + (dot.isPowerDot ? 50 : 10),
       }));
-
-      setDotsCollected(newDotsCollected);
 
       if (dot.isPowerDot) {
         soundManager.playPowerDotCollect();
@@ -273,18 +255,17 @@ const Pacman = () => {
         soundManager.playDotCollect();
       }
 
-      // Check if won (256 dots collected)
-      if (newDotsCollected >= DOTS_TO_WIN) {
+      // Check if level complete
+      if (gameState.dots.length <= 1) {
         soundManager.playLevelComplete();
-        setIsGameOver(true); // Win condition
-      }
-
-      // Expand maze when running low on dots
-      if (gameState.dots.length <= 5) {
-        setCurrentSegment((prev) => prev + 1);
-        setTimeout(() => {
-          initializeGame(gameState.level, false); // Don't reset dots count
-        }, 500);
+        if (gameState.level < 10) {
+          setTimeout(() => {
+            initializeGame(gameState.level + 1);
+          }, 2000);
+        } else {
+          // Game completed!
+          setIsGameOver(true);
+        }
       }
     }
 
@@ -426,9 +407,7 @@ const Pacman = () => {
     setIsGameOver(false);
     setIsPaused(false);
     setHackedNumbers([]);
-    setDotsCollected(0);
-    setCurrentSegment(0);
-    initializeGame(1, true);
+    initializeGame(1);
   };
 
   return (
@@ -437,9 +416,7 @@ const Pacman = () => {
         {/* Header */}
         <div className="game-header">
           <div className="score">Score: {gameState?.score || 0}</div>
-          <div className="dots">
-            Dots: {dotsCollected}/{DOTS_TO_WIN}
-          </div>
+          <div className="level">L{gameState?.level || 1}/10</div>
           <div className="lives">❤{gameState?.lives || 3}</div>
           {isGameStarted && (
             <button
@@ -507,11 +484,9 @@ const Pacman = () => {
         {/* Game Over */}
         {isGameOver && (
           <div className="game-over-overlay">
-            <h2>{dotsCollected >= DOTS_TO_WIN ? "YOU WON!" : "GAME OVER"}</h2>
+            <h2>GAME OVER</h2>
             <p>Final Score: {gameState?.score || 0}</p>
-            <p>
-              Dots Collected: {dotsCollected}/{DOTS_TO_WIN}
-            </p>
+            <p>Level Reached: {gameState?.level || 1}/10</p>
             <p>Germs Killed: {gameState?.germKillCount || 0}</p>
             <button onClick={startGame}>PLAY AGAIN</button>
           </div>

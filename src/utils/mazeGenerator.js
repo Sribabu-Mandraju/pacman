@@ -1,43 +1,26 @@
-// Maze generator utility for infinite level creation
-export const generateMaze = (level, segmentIndex = 0) => {
-  const rows = 200 + segmentIndex * 50; // Infinite expansion
-  const cols = 25; // Wider for better gameplay
+// Maze generator utility for dynamic level creation
+export const generateMaze = (level, baseRows = 100) => {
+  const rows = baseRows + (level - 1) * 20; // Start with 100 rows, add 20 per level
+  const cols = 19; // Keep width constant for now
 
-  // Create a maze with more empty spaces
+  // Create a maze filled with walls
   const maze = Array(rows)
     .fill()
-    .map(() => Array(cols).fill(0));
+    .map(() => Array(cols).fill(1));
 
-  // Create walls with more organic pattern and empty spaces
-  for (let y = 2; y < rows - 2; y += 3) {
-    for (let x = 2; x < cols - 2; x += 3) {
-      // Create wall clusters with gaps
-      if (Math.random() > 0.4) {
-        // 60% chance of wall cluster
-        maze[y][x] = 1;
+  // Create basic maze structure with corridors
+  for (let y = 1; y < rows - 1; y += 2) {
+    for (let x = 1; x < cols - 1; x += 2) {
+      maze[y][x] = 0; // Create corridor intersection
 
-        // Add surrounding walls randomly
-        if (Math.random() > 0.5) maze[y - 1][x] = 1;
-        if (Math.random() > 0.5) maze[y + 1][x] = 1;
-        if (Math.random() > 0.5) maze[y][x - 1] = 1;
-        if (Math.random() > 0.5) maze[y][x + 1] = 1;
+      // Create horizontal corridors
+      if (x < cols - 3 && Math.random() > 0.3) {
+        maze[y][x + 1] = 0;
       }
-    }
-  }
 
-  // Create some larger wall structures
-  for (let i = 0; i < Math.floor(rows / 20); i++) {
-    const startX = Math.floor(Math.random() * (cols - 8)) + 2;
-    const startY = Math.floor(Math.random() * (rows - 8)) + 2;
-    const width = 2 + Math.floor(Math.random() * 4);
-    const height = 2 + Math.floor(Math.random() * 4);
-
-    if (Math.random() > 0.3) {
-      // 70% chance to create structure
-      for (let y = startY; y < Math.min(startY + height, rows - 2); y++) {
-        for (let x = startX; x < Math.min(startX + width, cols - 2); x++) {
-          maze[y][x] = 1;
-        }
+      // Create vertical corridors
+      if (y < rows - 3 && Math.random() > 0.3) {
+        maze[y + 1][x] = 0;
       }
     }
   }
@@ -86,14 +69,16 @@ export const generateMaze = (level, segmentIndex = 0) => {
   };
 };
 
-// Dynamic level configurations for infinite gameplay
-export const getDynamicLevelConfig = (level, mazeSize) => {
-  const baseGerms = Math.floor(mazeSize / 100); // 1 germ per 100 cells
-  const baseGlitches = Math.floor(mazeSize / 150); // 1 glitch per 150 cells
-
-  return {
-    ghostCount: 20 + level * 2, // Moderate ghost increase
-    germCount: Math.max(3, baseGerms + Math.floor(level / 2)), // Variable based on maze size
-    glitchCount: Math.max(2, baseGlitches + Math.floor(level / 3)), // Variable based on maze size
-  };
+// Level configurations
+export const LEVEL_CONFIG = {
+  1: { ghostCount: 40, germCount: 5, glitchCount: 3 },
+  2: { ghostCount: 45, germCount: 7, glitchCount: 4 },
+  3: { ghostCount: 50, germCount: 9, glitchCount: 5 },
+  4: { ghostCount: 55, germCount: 11, glitchCount: 6 },
+  5: { ghostCount: 60, germCount: 13, glitchCount: 7 },
+  6: { ghostCount: 65, germCount: 15, glitchCount: 8 },
+  7: { ghostCount: 70, germCount: 17, glitchCount: 9 },
+  8: { ghostCount: 75, germCount: 19, glitchCount: 10 },
+  9: { ghostCount: 80, germCount: 21, glitchCount: 11 },
+  10: { ghostCount: 90, germCount: 25, glitchCount: 15 },
 };
