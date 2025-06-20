@@ -8,29 +8,35 @@ import Germ from "./Germ";
 const CELL_SIZE = 1;
 
 const levelColors = [
-  "#0066ff", // Level 1: Blue
-  "#FFA500", // Level 2: Orange
-  "#800080", // Level 3: Purple
-  "#0066ff", // Level 4: Blue
-  "#FFA500", // Level 5: Orange
-  "#800080", // Level 6: Purple
-  "#0066ff", // Level 7: Blue
-  "#FFA500", // Level 8: Orange
-  "#800080", // Level 9: Purple
-  "#0066ff", // Level 10: Blue
+  "#0066ff",
+  "#FFA500",
+  "#800080",
+  "#0066ff",
+  "#FFA500",
+  "#800080",
+  "#0066ff",
+  "#FFA500",
+  "#800080",
+  "#0066ff",
 ];
 
-const GameScene = ({ gameState, mazeData, onDotCollect, onGermMove }) => {
+const GameScene = ({
+  gameState,
+  mazeData,
+  onDotCollect,
+  onGermMove,
+  selectedCharacter,
+}) => {
   const { camera } = useThree();
   const cameraTargetRef = useRef({ x: 0, y: 0, z: 0 });
   const wallMeshRef = useRef();
   const tempObject = useMemo(() => new THREE.Object3D(), []);
 
   useEffect(() => {
-    // Set camera for classic Pac-Man perspective - more top-down view
-    camera.position.set(0, 15, 8);
+    // Set camera for classic Pac-Man perspective - zoomed in closer
+    camera.position.set(0, 12, 6);
     camera.lookAt(0, 0, 0);
-    camera.fov = 75;
+    camera.fov = 70;
     camera.updateProjectionMatrix();
   }, [camera]);
 
@@ -169,6 +175,7 @@ const GameScene = ({ gameState, mazeData, onDotCollect, onGermMove }) => {
             pacmanY - dimensions.rows / 2,
           ]}
           direction={gameState.direction}
+          selectedCharacter={selectedCharacter}
         />
       )}
     </>

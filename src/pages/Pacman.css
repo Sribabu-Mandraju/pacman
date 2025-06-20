@@ -28,6 +28,7 @@ html {
   font-family: "Press Start 2P", "Courier New", monospace;
   overflow: hidden;
   position: relative;
+  touch-action: none;
 }
 
 .pacman-container::before {

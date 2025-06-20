@@ -4,6 +4,7 @@ import { useDrag } from "@use-gesture/react";
 import "./Pacman.css";
 import GameScene from "../components/game/GameScene";
 import HackedNumbers from "../components/game/HackedNumbers";
+import CharacterSelection from "../components/CharacterSelection";
 import { generateMaze, LEVEL_CONFIG } from "../utils/mazeGenerator";
 import { soundManager } from "../utils/soundManager";
 
@@ -14,6 +15,8 @@ const Pacman = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [hackedNumbers, setHackedNumbers] = useState([]);
+  const [showCharacterSelection, setShowCharacterSelection] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState("Weslie");
   const lastMoveTimeRef = useRef(0);
   const gameLoopRef = useRef(null);
   const moveSpeed = 200;
@@ -120,7 +123,7 @@ const Pacman = () => {
           ...prev,
           pacman: { x: newX, y: newY },
           direction: direction,
-          nextDirection: null,
+          // Don't clear nextDirection here - let gameLoop handle it
         }));
         soundManager.playMove();
         return true;
@@ -191,21 +194,22 @@ const Pacman = () => {
     if (now - lastMoveTimeRef.current < moveSpeed) return;
     lastMoveTimeRef.current = now;
 
-    // Try to move in next direction first, if it fails try current direction
+    // Try to move in queued direction first, if it succeeds, make it the current direction
     let moved = false;
     if (gameState.nextDirection) {
       moved = movePacman(gameState.nextDirection);
       if (moved) {
-        // Successfully changed direction
+        // Successfully changed direction - clear the queue
         setGameState((prev) => ({
           ...prev,
           direction: gameState.nextDirection,
           nextDirection: null,
         }));
       }
+      // If queued direction failed, keep it queued and try again next frame
     }
 
-    // If we couldn't turn or no next direction, continue in current direction
+    // If we couldn't turn (or no queued direction), continue in current direction
     if (!moved && gameState.direction) {
       movePacman(gameState.direction);
     }
@@ -370,6 +374,10 @@ const Pacman = () => {
 
   // Start game
   const startGame = () => {
+    setShowCharacterSelection(true);
+  };
+
+  const playAgain = () => {
     setIsGameStarted(true);
     setIsGameOver(false);
     setIsPaused(false);
@@ -377,17 +385,40 @@ const Pacman = () => {
     initializeGame(1);
   };
 
+  const handleCharacterSelect = (character) => {
+    setSelectedCharacter(character);
+    setShowCharacterSelection(false);
+    setIsGameStarted(true);
+    setIsGameOver(false);
+    setIsPaused(false);
+    setHackedNumbers([]);
+    initializeGame(1);
+  };
+
+  const handleBackToMenu = () => {
+    setShowCharacterSelection(false);
+  };
+
   const setDirection = (dir) => {
     if (!isGameStarted || isGameOver || isPaused) return;
-    setGameState((prev) =>
-      prev
-        ? {
-            ...prev,
-            direction: prev.direction || dir,
-            nextDirection: dir,
-          }
-        : prev
-    );
+    setGameState((prev) => {
+      if (!prev) return prev;
+
+      // If player presses the same direction they're already moving, clear any queued direction
+      if (prev.direction === dir) {
+        return {
+          ...prev,
+          nextDirection: null,
+        };
+      }
+
+      // Otherwise, queue the new direction
+      return {
+        ...prev,
+        direction: prev.direction || dir, // Set initial direction if none
+        nextDirection: dir,
+      };
+    });
   };
 
   const bind = useDrag(
@@ -435,6 +466,7 @@ const Pacman = () => {
               gameState={gameState}
               mazeData={mazeData}
               onGermMove={moveGerm}
+              selectedCharacter={selectedCharacter}
             />
           </Canvas>
 
@@ -454,8 +486,16 @@ const Pacman = () => {
           ))}
         </div>
 
+        {/* Character Selection */}
+        {showCharacterSelection && (
+          <CharacterSelection
+            onCharacterSelect={handleCharacterSelect}
+            onBack={handleBackToMenu}
+          />
+        )}
+
         {/* Start Game Overlay */}
-        {!isGameStarted && !isGameOver && (
+        {!isGameStarted && !isGameOver && !showCharacterSelection && (
           <div className="start-overlay">
             <h1>PACMAN 256</h1>
             <p>10 Levels • Dynamic Mazes • Survive the Germs!</p>
@@ -484,7 +524,7 @@ const Pacman = () => {
             <p>Final Score: {gameState?.score || 0}</p>
             <p>Level Reached: {gameState?.level || 1}/10</p>
             <p>Germs Killed: {gameState?.germKillCount || 0}</p>
-            <button onClick={startGame}>PLAY AGAIN</button>
+            <button onClick={playAgain}>PLAY AGAIN</button>
           </div>
         )}
       </div>
