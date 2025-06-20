@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
+import { useDrag } from "@use-gesture/react";
 import "./Pacman.css";
 import GameScene from "../components/game/GameScene";
 import HackedNumbers from "../components/game/HackedNumbers";
@@ -15,7 +16,7 @@ const Pacman = () => {
   const [hackedNumbers, setHackedNumbers] = useState([]);
   const lastMoveTimeRef = useRef(0);
   const gameLoopRef = useRef(null);
-  const moveSpeed = 100;
+  const moveSpeed = 200;
 
   const initializeGame = useCallback((level = 1) => {
     const maze = generateMaze(level);
@@ -28,78 +29,44 @@ const Pacman = () => {
     for (let y = 0; y < maze.dimensions.rows; y++) {
       for (let x = 0; x < maze.dimensions.cols; x++) {
         if (maze.pattern[y] && maze.pattern[y][x] === 0) {
-          // Add power dots at specific intervals
-          const isPowerDot = x % 9 === 1 && y % 7 === 1;
-          dots.push({ x: x + 0.5, y: y + 0.5, isPowerDot });
+          // Center dots properly in walkable cells
+          dots.push({ x: x, y: y, isPowerDot: false });
         }
       }
     }
 
-    // Create ghosts
-    const ghosts = [];
-    const colors = ["#ff0000", "#ffb8ff", "#00ffff", "#ffb852"];
-    for (let i = 0; i < levelConfig.ghostCount; i++) {
-      let x, y;
-      do {
-        x = Math.floor(Math.random() * maze.dimensions.cols);
-        y = Math.floor(Math.random() * maze.dimensions.rows);
-      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
-
-      ghosts.push({
-        x: x + 0.5,
-        y: y + 0.5,
-        color: colors[i % colors.length],
-        direction: Math.floor(Math.random() * 4),
-      });
-    }
-
     // Create germs with different AI types
     const germs = [];
-    const aiTypes = ["patrol", "hunter", "guard"];
+    const aiTypes = ["patrol", "hunter", "guard", "fast", "slow", "teleporter"];
     for (let i = 0; i < levelConfig.germCount; i++) {
       let x, y;
       do {
         x = Math.floor(Math.random() * maze.dimensions.cols);
         y = Math.floor(Math.random() * maze.dimensions.rows);
-      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
+      } while (
+        (maze.pattern[y] && maze.pattern[y][x] === 1) ||
+        Math.abs(x - maze.spawnPoint.x) + Math.abs(y - maze.spawnPoint.y) < 10
+      );
 
       germs.push({
         id: i,
-        x: x + 0.5,
-        y: y + 0.5,
+        x: x,
+        y: y,
         direction: Math.floor(Math.random() * 4),
         aiType: aiTypes[i % aiTypes.length],
         lastMove: 0,
       });
     }
 
-    // Create glitches
-    const glitches = [];
-    for (let i = 0; i < levelConfig.glitchCount; i++) {
-      let x, y;
-      do {
-        x = Math.floor(Math.random() * maze.dimensions.cols);
-        y = Math.floor(Math.random() * maze.dimensions.rows);
-      } while (maze.pattern[y] && maze.pattern[y][x] === 1);
-
-      glitches.push({
-        x: x + 0.5,
-        y: y + 0.5,
-        direction: Math.floor(Math.random() * 4),
-      });
-    }
-
     setGameState({
       pacman: { x: maze.spawnPoint.x, y: maze.spawnPoint.y },
-      ghosts,
       germs,
-      glitches,
       dots,
       score: 0,
       level: level,
-      lives: 3,
+      lives: 1,
       germKillCount: 0,
-      direction: "right",
+      direction: null,
       nextDirection: null,
     });
 
@@ -172,6 +139,16 @@ const Pacman = () => {
         const newGerms = prev.germs.map((germ) => {
           if (germ.id !== germId) return germ;
 
+          // Handle teleportation
+          if (direction === 4) {
+            let newX, newY;
+            do {
+              newX = Math.floor(Math.random() * mazeData.dimensions.cols);
+              newY = Math.floor(Math.random() * mazeData.dimensions.rows);
+            } while (mazeData.pattern[newY]?.[newX] === 1);
+            return { ...germ, x: newX, y: newY };
+          }
+
           let newX = germ.x;
           let newY = germ.y;
 
@@ -243,20 +220,18 @@ const Pacman = () => {
 
     if (dotIndex !== -1) {
       const dot = gameState.dots[dotIndex];
+      const remainingDots = gameState.dots.length - 1;
+
       setGameState((prev) => ({
         ...prev,
         dots: prev.dots.filter((_, index) => index !== dotIndex),
-        score: prev.score + (dot.isPowerDot ? 50 : 10),
+        score: prev.score + 10,
       }));
 
-      if (dot.isPowerDot) {
-        soundManager.playPowerDotCollect();
-      } else {
-        soundManager.playDotCollect();
-      }
+      soundManager.playDotCollect();
 
       // Check if level complete
-      if (gameState.dots.length <= 1) {
+      if (remainingDots <= 0) {
         soundManager.playLevelComplete();
         if (gameState.level < 10) {
           setTimeout(() => {
@@ -278,9 +253,8 @@ const Pacman = () => {
 
     // Check germ and glitch collisions (deadly)
     const hitByGerm = gameState.germs.some(checkCollision);
-    const hitByGlitch = gameState.glitches.some(checkCollision);
 
-    if (hitByGerm || hitByGlitch) {
+    if (hitByGerm) {
       soundManager.playPlayerDeath();
 
       // Add multiple hacked numbers effect
@@ -386,14 +360,7 @@ const Pacman = () => {
 
       if (directions[e.key]) {
         e.preventDefault();
-        setGameState((prev) =>
-          prev
-            ? {
-                ...prev,
-                nextDirection: directions[e.key],
-              }
-            : prev
-        );
+        setDirection(directions[e.key]);
       }
     };
 
@@ -410,14 +377,47 @@ const Pacman = () => {
     initializeGame(1);
   };
 
+  const setDirection = (dir) => {
+    if (!isGameStarted || isGameOver || isPaused) return;
+    setGameState((prev) =>
+      prev
+        ? {
+            ...prev,
+            direction: prev.direction || dir,
+            nextDirection: dir,
+          }
+        : prev
+    );
+  };
+
+  const bind = useDrag(
+    ({ down, movement: [mx, my], velocity: [vx, vy], direction: [dx, dy] }) => {
+      if (down) return; // Only trigger on swipe end
+
+      const isHorizontal = Math.abs(mx) > Math.abs(my);
+      const isVertical = !isHorizontal;
+
+      if (isHorizontal) {
+        if (dx > 0) setDirection("right");
+        else setDirection("left");
+      } else if (isVertical) {
+        if (dy > 0) setDirection("down");
+        else setDirection("up");
+      }
+    },
+    {
+      threshold: 20, // Minimum distance for a swipe to register
+      axis: "lock", // Lock to the dominant axis
+    }
+  );
+
   return (
-    <div className="pacman-container">
+    <div className="pacman-container" {...bind()}>
       <div className="mobile-frame">
         {/* Header */}
         <div className="game-header">
-          <div className="score">Score: {gameState?.score || 0}</div>
+          <div className="score">{gameState?.score || 0}</div>
           <div className="level">L{gameState?.level || 1}/10</div>
-          <div className="lives">❤{gameState?.lives || 3}</div>
           {isGameStarted && (
             <button
               className="pause-button"
@@ -431,15 +431,11 @@ const Pacman = () => {
         {/* Game Canvas */}
         <div className="game-viewport">
           <Canvas>
-            {isGameStarted && !isGameOver && gameState && mazeData ? (
-              <GameScene
-                gameState={gameState}
-                mazeData={mazeData}
-                onGermMove={moveGerm}
-              />
-            ) : (
-              <HackedNumbers />
-            )}
+            <GameScene
+              gameState={gameState}
+              mazeData={mazeData}
+              onGermMove={moveGerm}
+            />
           </Canvas>
 
           {/* Hacked Numbers Effect */}
@@ -461,8 +457,8 @@ const Pacman = () => {
         {/* Start Game Overlay */}
         {!isGameStarted && !isGameOver && (
           <div className="start-overlay">
-            <h1>PAC-MAN 3D</h1>
-            <p>10 Levels • Dynamic Mazes • Survive the Germs and Glitches!</p>
+            <h1>PACMAN 256</h1>
+            <p>10 Levels • Dynamic Mazes • Survive the Germs!</p>
             <button className="start-button" onClick={startGame}>
               START GAME
             </button>

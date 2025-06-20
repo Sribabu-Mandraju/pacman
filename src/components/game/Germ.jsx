@@ -17,11 +17,19 @@ const Germ = ({ position, aiType = "patrol", onMove }) => {
       // AI Movement
       timeRef.current = state.clock.elapsedTime;
 
-      if (timeRef.current - lastMoveRef.current > 0.8) {
-        // Move every 800ms
-        lastMoveRef.current = timeRef.current;
+      const moveInterval =
+        aiType === "fast" ? 0.15 : aiType === "slow" ? 0.3 : 0.19;
 
+      if (timeRef.current - lastMoveRef.current > moveInterval) {
+        // Move every 190ms, 150ms, or 300ms depending on aiType
+        lastMoveRef.current = timeRef.current;
         let newDirection = directionRef.current;
+
+        if (aiType === "teleporter" && Math.random() < 0.05) {
+          // 5% chance to teleport
+          if (onMove) onMove(4); // Special direction for teleport
+          return;
+        }
 
         switch (aiType) {
           case "patrol":
@@ -45,6 +53,15 @@ const Germ = ({ position, aiType = "patrol", onMove }) => {
             }
             break;
 
+          case "fast":
+          case "slow":
+          case "teleporter":
+            // Random movement
+            if (Math.random() < 0.4) {
+              newDirection = Math.floor(Math.random() * 4);
+            }
+            break;
+
           default:
             // Random movement
             if (Math.random() < 0.4) {
@@ -61,22 +78,27 @@ const Germ = ({ position, aiType = "patrol", onMove }) => {
     }
   });
 
-  // Different visual styles based on AI type
   const getGermStyle = () => {
     switch (aiType) {
       case "hunter":
-        return { color: "#ff2222", emissive: "#660000", size: 0.4 };
+        return { color: "#ff2222", emissive: "#660000" }; // Red
       case "guard":
-        return { color: "#2222ff", emissive: "#000066", size: 0.45 };
+        return { color: "#2222ff", emissive: "#000066" }; // Blue
+      case "fast":
+        return { color: "#ffff00", emissive: "#666600" }; // Yellow
+      case "slow":
+        return { color: "#ff00ff", emissive: "#660066" }; // Magenta
+      case "teleporter":
+        return { color: "#00ffff", emissive: "#006666" }; // Cyan
       default:
-        return { color: "#22ff22", emissive: "#006600", size: 0.35 };
+        return { color: "#22ff22", emissive: "#006600" }; // Green (patrol)
     }
   };
 
   const style = getGermStyle();
 
   return (
-    <Sphere ref={meshRef} position={position} args={[style.size]}>
+    <Sphere ref={meshRef} position={position} args={[0.4]}>
       <meshLambertMaterial color={style.color} emissive={style.emissive} />
     </Sphere>
   );
