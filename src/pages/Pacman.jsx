@@ -17,6 +17,7 @@ const Pacman = () => {
   const [hackedNumbers, setHackedNumbers] = useState([]);
   const [showCharacterSelection, setShowCharacterSelection] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState("Weslie");
+  const [showJoystick, setShowJoystick] = useState(false);
   const lastMoveTimeRef = useRef(0);
   const gameLoopRef = useRef(null);
   const moveSpeed = 200;
@@ -27,13 +28,30 @@ const Pacman = () => {
 
     setMazeData(maze);
 
-    // Create dots for empty spaces
+    // Create dots for all empty spaces (0) in the maze
     const dots = [];
-    for (let y = 0; y < maze.dimensions.rows; y++) {
-      for (let x = 0; x < maze.dimensions.cols; x++) {
-        if (maze.pattern[y] && maze.pattern[y][x] === 0) {
-          // Center dots properly in walkable cells
-          dots.push({ x: x, y: y, isPowerDot: false });
+    for (let row = 0; row < maze.pattern.length; row++) {
+      for (let col = 0; col < maze.pattern[row].length; col++) {
+        const cell = maze.pattern[row][col];
+
+        // Only create dots for walkable spaces (0)
+        if (cell === 0) {
+          // Check if this position is in the no-spawn area
+          const distance = Math.sqrt(
+            Math.pow(col - maze.noSpawnArea.centerX, 2) +
+              Math.pow(row - maze.noSpawnArea.centerY, 2)
+          );
+
+          // Skip dots in spawn protection area
+          if (distance <= maze.noSpawnArea.radius) {
+            continue;
+          }
+
+          dots.push({
+            x: col,
+            y: row,
+            isPowerDot: false,
+          });
         }
       }
     }
@@ -43,13 +61,22 @@ const Pacman = () => {
     const aiTypes = ["patrol", "hunter", "guard", "fast", "slow", "teleporter"];
     for (let i = 0; i < levelConfig.germCount; i++) {
       let x, y;
+      let attempts = 0;
       do {
         x = Math.floor(Math.random() * maze.dimensions.cols);
         y = Math.floor(Math.random() * maze.dimensions.rows);
-      } while (
-        (maze.pattern[y] && maze.pattern[y][x] === 1) ||
-        Math.abs(x - maze.spawnPoint.x) + Math.abs(y - maze.spawnPoint.y) < 10
-      );
+        attempts++;
+
+        // Check if position is walkable and not in spawn protection area
+        const isWalkable = maze.pattern[y] && maze.pattern[y][x] === 0;
+        const dx = Math.abs(x - maze.spawnPoint.x);
+        const dy = Math.abs(y - maze.spawnPoint.y);
+        const isInSpawnArea = dy <= 5 && dx <= 2; // Same protection area as dots
+
+        if (isWalkable && !isInSpawnArea) {
+          break; // Found a good position
+        }
+      } while (attempts < 100); // Prevent infinite loop
 
       germs.push({
         id: i,
@@ -88,7 +115,8 @@ const Pacman = () => {
         gridX < mazeData.dimensions.cols &&
         gridY >= 0 &&
         gridY < mazeData.dimensions.rows &&
-        (!mazeData.pattern[gridY] || mazeData.pattern[gridY][gridX] === 0)
+        mazeData.pattern[gridY] &&
+        mazeData.pattern[gridY][gridX] === 0
       );
     },
     [mazeData]
@@ -392,7 +420,7 @@ const Pacman = () => {
     setIsGameOver(false);
     setIsPaused(false);
     setHackedNumbers([]);
-    initializeGame(1);
+    initializeGame(3);
   };
 
   const handleBackToMenu = () => {
@@ -450,12 +478,29 @@ const Pacman = () => {
           <div className="score">{gameState?.score || 0}</div>
           <div className="level">L{gameState?.level || 1}/10</div>
           {isGameStarted && (
-            <button
-              className="pause-button"
-              onClick={() => setIsPaused(!isPaused)}
-            >
-              {isPaused ? "▶" : "⏸"}
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                className="pause-button"
+                onClick={() => setIsPaused(!isPaused)}
+              >
+                {isPaused ? "▶" : "⏸"}
+              </button>
+              <button
+                className="joystick-toggle"
+                onClick={() => setShowJoystick(!showJoystick)}
+                style={{
+                  background: "rgba(0, 255, 0, 0.2)",
+                  border: "2px solid #00ff00",
+                  color: "#00ff00",
+                  padding: "0.5rem",
+                  borderRadius: "5px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                🕹️
+              </button>
+            </div>
           )}
         </div>
 
@@ -484,6 +529,124 @@ const Pacman = () => {
               {num.text}
             </div>
           ))}
+
+          {/* Virtual Joystick */}
+          {showJoystick && isGameStarted && !isGameOver && !isPaused && (
+            <div
+              className="virtual-joystick"
+              style={{
+                position: "absolute",
+                bottom: "20px",
+                right: "20px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                {/* Up Button */}
+                <button
+                  className="joystick-btn"
+                  onClick={() => setDirection("up")}
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    margin: "2px",
+                    background: "rgba(0, 255, 0, 0.3)",
+                    border: "2px solid #00ff00",
+                    borderRadius: "10px",
+                    color: "#00ff00",
+                    fontSize: "20px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ↑
+                </button>
+
+                <div style={{ display: "flex" }}>
+                  {/* Left Button */}
+                  <button
+                    className="joystick-btn"
+                    onClick={() => setDirection("left")}
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      margin: "2px",
+                      background: "rgba(0, 255, 0, 0.3)",
+                      border: "2px solid #00ff00",
+                      borderRadius: "10px",
+                      color: "#00ff00",
+                      fontSize: "20px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transform: "rotate(270deg)",
+                    }}
+                  >
+                    ↑
+                  </button>
+
+                  {/* Center (no button) */}
+                  <div
+                    style={{ width: "50px", height: "50px", margin: "2px" }}
+                  ></div>
+
+                  {/* Right Button */}
+                  <button
+                    className="joystick-btn"
+                    onClick={() => setDirection("right")}
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      margin: "2px",
+                      background: "rgba(0, 255, 0, 0.3)",
+                      border: "2px solid #00ff00",
+                      borderRadius: "10px",
+                      color: "#00ff00",
+                      fontSize: "20px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transform: "rotate(90deg)",
+                    }}
+                  >
+                    ↑
+                  </button>
+                </div>
+
+                {/* Down Button */}
+                <button
+                  className="joystick-btn"
+                  onClick={() => setDirection("down")}
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    margin: "2px",
+                    background: "rgba(0, 255, 0, 0.3)",
+                    border: "2px solid #00ff00",
+                    borderRadius: "10px",
+                    color: "#00ff00",
+                    fontSize: "20px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Character Selection */}
@@ -514,6 +677,13 @@ const Pacman = () => {
           <div className="pause-overlay">
             <h2>PAUSED</h2>
             <p>Press Space or Escape to resume</p>
+            <button
+              className="start-button"
+              onClick={() => setIsPaused(false)}
+              style={{ marginTop: "1rem" }}
+            >
+              RESUME
+            </button>
           </div>
         )}
 
