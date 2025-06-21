@@ -420,7 +420,7 @@ const Pacman = () => {
     setIsGameOver(false);
     setIsPaused(false);
     setHackedNumbers([]);
-    initializeGame(3);
+    initializeGame(1);
   };
 
   const handleBackToMenu = () => {
