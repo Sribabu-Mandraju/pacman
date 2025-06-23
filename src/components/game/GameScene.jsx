@@ -161,6 +161,7 @@ const GameScene = ({
               0.3,
               germ.y - dimensions.rows / 2,
             ]}
+            pacmanPosition={gameState.pacman}
             aiType={germ.aiType}
             onMove={(direction) => onGermMove && onGermMove(germ.id, direction)}
           />

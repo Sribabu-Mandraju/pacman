@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Sphere } from "@react-three/drei";
 
-const Germ = ({ position, aiType = "patrol", onMove }) => {
+const Germ = ({ position, aiType = "patrol", onMove, pacmanPosition }) => {
   const meshRef = useRef();
   const timeRef = useRef(0);
   const directionRef = useRef(Math.floor(Math.random() * 4)); // 0=up, 1=right, 2=down, 3=left
@@ -32,6 +32,31 @@ const Germ = ({ position, aiType = "patrol", onMove }) => {
         }
 
         switch (aiType) {
+          case "smartHunter": {
+            const detectionRadius = 10;
+            const germPos = { x: position[0], y: position[2] };
+            const pacmanPos = { x: pacmanPosition.x, y: pacmanPosition.y };
+            const dx = pacmanPos.x - germPos.x;
+            const dy = pacmanPos.y - germPos.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < detectionRadius) {
+              // Pacman is close, hunt him!
+              if (Math.abs(dx) > Math.abs(dy)) {
+                // Move horizontally
+                newDirection = dx > 0 ? 1 : 3; // 1=right, 3=left
+              } else {
+                // Move vertically
+                newDirection = dy > 0 ? 2 : 0; // 2=down, 0=up
+              }
+            } else {
+              // Pacman is far, patrol randomly
+              if (Math.random() < 0.3) {
+                newDirection = Math.floor(Math.random() * 4);
+              }
+            }
+            break;
+          }
           case "patrol":
             // Simple patrol: occasionally change direction
             if (Math.random() < 0.3) {
@@ -90,6 +115,8 @@ const Germ = ({ position, aiType = "patrol", onMove }) => {
         return { color: "#ff00ff", emissive: "#660066" }; // Magenta
       case "teleporter":
         return { color: "#00ffff", emissive: "#006666" }; // Cyan
+      case "smartHunter":
+        return { color: "#ff9900", emissive: "#993300" }; // Orange
       default:
         return { color: "#22ff22", emissive: "#006600" }; // Green (patrol)
     }

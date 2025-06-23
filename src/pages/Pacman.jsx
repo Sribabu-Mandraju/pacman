@@ -58,7 +58,15 @@ const Pacman = () => {
 
     // Create germs with different AI types
     const germs = [];
-    const aiTypes = ["patrol", "hunter", "guard", "fast", "slow", "teleporter"];
+    const aiTypes = [
+      "patrol",
+      "hunter",
+      "guard",
+      "fast",
+      "slow",
+      "teleporter",
+      "smartHunter",
+    ];
     for (let i = 0; i < levelConfig.germCount; i++) {
       let x, y;
       let attempts = 0;
@@ -71,7 +79,7 @@ const Pacman = () => {
         const isWalkable = maze.pattern[y] && maze.pattern[y][x] === 0;
         const dx = Math.abs(x - maze.spawnPoint.x);
         const dy = Math.abs(y - maze.spawnPoint.y);
-        const isInSpawnArea = dy <= 5 && dx <= 2; // Same protection area as dots
+        const isInSpawnArea = dy <= 5; // Same protection area as dots
 
         if (isWalkable && !isInSpawnArea) {
           break; // Found a good position
@@ -420,7 +428,7 @@ const Pacman = () => {
     setIsGameOver(false);
     setIsPaused(false);
     setHackedNumbers([]);
-    initializeGame(1);
+    initializeGame(5);
   };
 
   const handleBackToMenu = () => {
